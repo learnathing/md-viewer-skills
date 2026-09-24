@@ -19,6 +19,7 @@ const QUIET = process.argv.includes('--quiet');
 const WITH_EXAMPLES = process.argv.includes('--with-examples');
 
 const GATES = [
+  ['diagram profiles and recipe contracts (no renderer)', 'test-diagram-policy.mjs', []],
   ['themes (generated files match the source tables)', 'build-themes.mjs', ['--check']],
   ['contrast (every declared use, per theme)', 'check-palette-contrast.mjs', []],
   ['blocks (render every theme × engine block)', 'verify-blocks.mjs', []],

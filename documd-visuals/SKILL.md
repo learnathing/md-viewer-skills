@@ -2,150 +2,158 @@
 name: documd-visuals
 license: CC-BY-4.0
 compatibility: >
-  Figures need only the host application that renders the document. Batch conversion to html / epub /
-  docx / pdf needs Node 18+ and Chrome/Chromium, via `npx @markdown-viewer/documd`.
+  Report figures use the docu.md host; batch exports need Node 18+ and Chrome/Chromium via
+  @markdown-viewer/documd. Portable Mermaid needs a compatible host or a separate renderer.
+  Editable Excalidraw assets need an external editor/exporter; installing this skill installs neither.
 description: >
-  Create visuals in Markdown documents: charts, diagrams, cards, architecture and page layouts.
-  Charts and analytical views (bar, line, pie, heatmap, correlation, regression); reliability and
-  operations (latency, incident, throughput, cycle time, OKR, standup, on-call); product and finance
-  (funnel, retention, revenue, budget); process and workflow (approval, BPMN); software design and
-  behaviour (class, state machine, sequence, C4); dependencies and impact (dependency graph, ER, causality);
-  system architecture as an HTML page (layer stack, wings, zones, topology, service catalogue, request
-  paths); infrastructure (cloud, Kubernetes, ETL, network, security, IAM, compliance); governance and people
-  (ArchiMate, org chart, hiring); knowledge and planning (mind map, roadmap, Gantt, migration); documents
-  (comparison, SWOT, memo, policy, catalogue, case study). Use when a document needs a diagram, chart or
-  card. Not for slide decks or math notation, or for mermaid / canvas / drawio.
+  Create Markdown visuals: charts, diagrams, cards, architecture and page layouts. Route by publishing
+  target and editing workflow: Mermaid for code-maintained flows, Excalidraw for editable architecture
+  and whiteboards, specialist engines for reports. Covers latency, incident, throughput, cycle time,
+  OKR, standup, on-call, funnel, retention, revenue, budget, correlation; approval, BPMN, class, state
+  machine, sequence, dependency, ER; cloud, Kubernetes, ETL, network, security, IAM, ArchiMate, org chart,
+  hiring; mind map, roadmap, Gantt, migration, SWOT, memo, policy, catalogue and case study.
+  Use for README diagrams, design reviews, technical documentation and report visuals.
+  Not for slide decks, math notation, canvas or drawio authoring.
 ---
 
 # documd visuals
 
-Routing for every diagram, chart, card and layout this document pipeline can render.
+Route by **goal + publishing target + editing workflow**, not by the word "diagram" alone.
+
+## Choose the workflow first
+
+| Profile | Choose when | Start with |
+|---|---|---|
+| `report` | A docu.md report or batch document export; the default when no target is specified | The goal table below and its verified examples |
+| `portable-docs` | A README, code review or technical document with code-maintained relationships | [Mermaid](engines/mermaid.md) for ordinary flow, sequence, state, class and ER diagrams |
+| `editable-canvas` | A design review, whiteboard or architecture whose positions need human editing | [Excalidraw](engines/excalidraw.md) source assets plus SVG/PNG previews |
+
+Follow [workflows.md](workflows.md) for scenario overrides, fallback rules, source ownership and
+acceptance checks. Honor explicit requirements when supported. A profile does **not install a renderer**. Keep ECharts/Vega for statistics,
+Graphviz for dense dependency graphs, and verified PlantUML for specialized semantics or stencils.
 
 ## Iron rules
 
-1. **Allowed fences** — `plantuml` / `puml` · `dot` · `vega` · `vega-lite` · `echarts` · `infographic`,
-   plus **bare HTML** — which is how system architecture diagrams, cards and page layouts are drawn.
-2. **Not recommended: `mermaid` · `canvas` · `drawio`.** Never write new content in them — use the
-   engines above.
-3. **One diagram per fence.** Do not put two engines in one block, and never nest fences.
-4. **HTML is bare, never ` ```html `** — a fenced block becomes an image. Start from a real file rather
-   than inventing one: [`layered-with-wings.md`](examples/system-architecture/layered-with-wings.md) for a
-   system, [`executive-brief-summary.md`](examples/internal-documents/executive-brief-summary.md) for a card.
-5. **Inline the data.** `vega` / `vega-lite` / `echarts` must carry their own `values` / `series` data;
-   external URLs are unreliable on the export path.
-6. **State the reading in the copy.** Every figure answers one question — put that question in the
-   surrounding prose or the block's `title`.
-7. **Pick a theme, then colour from it.** Colours come from one of the themes indexed in
-   [`styles/palette.md`](styles/palette.md); copy that theme's block for your engine and take every
-   value from it — a hex picked by hand, or two themes in one figure, is a bug. Charts pass the
-   categorical ramp in order; cards use one accent plus neutrals.
+1. **Report fences** — `plantuml` / `puml`, `dot`, `vega` / `vega-lite`, `echarts`, `infographic`;
+   page layouts use **bare HTML**. `portable-docs` additionally permits canonical `mermaid` fences.
+   No native `excalidraw` fence is introduced: save a scene file and reference its exported image.
+2. **Not recommended for authoring:** `mmd`, `canvas`, `drawio`, or invented engine fences. Use
+   `mermaid` as the Markdown fence name; `.mmd` remains a valid external source-file extension.
+3. **One diagram per fence.** Do not combine diagram definitions or nest engine fences.
+4. **HTML is bare, never fenced.** Start from [layered-with-wings](examples/system-architecture/layered-with-wings.md)
+   for a report architecture or [executive brief](examples/internal-documents/executive-brief-summary.md)
+   for a card. Choose Excalidraw instead when a person must rearrange the diagram.
+5. **Inline data and assets.** Charts carry their `values` / `series`; export with local or embedded
+   resources. Do not send private diagrams to public converters without authorization.
+6. **State the reading in prose.** Every figure answers one question. Keep critical facts in the
+   surrounding text, with a descriptive caption or alt text; a picture is not the only copy.
+7. **Theme by delivery contract.** Report figures use [styles/palette.md](styles/palette.md).
+   Portable native Mermaid may use the host default when configuration is unavailable; exact styling
+   requires a controlled renderer and a preview asset. For Mermaid/Excalidraw mappings use
+   [diagram adapters](styles/diagram-adapters.md); do not mix palettes or invent token values.
 
-## Route by goal
+## Route by goal — report profile
 
-Find the reader's goal, open the goal guide, pick an example. Engines are suggestions; the guide and
-examples are authoritative.
+The existing goal guides, catalogue and verified examples describe the **report** profile. Select
+[the workflow](workflows.md) first: its portable/editable overrides take precedence over a report
+engine recommendation. Engine-guide recipes are not verified corpus additions.
 
 ### A — data & metrics
 
 | Goal | Trigger keywords | Engines | Read |
 |---|---|---|---|
-| service-reliability | latency · p95/p99 · SLO · SLA · error budget · burn rate · availability · uptime · reliability | echarts vega infographic | [goals/service-reliability.md](goals/service-reliability.md) |
-| ops-monitoring | incident load · alert volume · outliers · anomalies · service scorecard · support volume | echarts vega infographic | [goals/ops-monitoring.md](goals/ops-monitoring.md) |
-| delivery-throughput | throughput · cycle time · lead time · velocity · capacity · staffing · backlog · WIP · rank movement | echarts vega infographic | [goals/delivery-throughput.md](goals/delivery-throughput.md) |
-| goal-and-status-reporting | OKR · KPI · target vs actual · goal attainment · status board · dashboard · scorecard | echarts vega infographic html-css | [goals/goal-and-status-reporting.md](goals/goal-and-status-reporting.md) |
-| product-metrics | conversion · funnel · adoption · retention · churn · activation · signup · cohorts · experiment | echarts infographic | [goals/product-metrics.md](goals/product-metrics.md) |
-| business-reporting | quarterly results · revenue · ARR · revenue mix · margin · periodic results · forecast | infographic vega echarts | [goals/business-reporting.md](goals/business-reporting.md) |
-| go-to-market | pipeline · channel · partner · partner tiers · market entry · sales funnel · SWOT · campaigns | echarts infographic | [goals/go-to-market.md](goals/go-to-market.md) |
-| cost-and-budget | cost · spend · budget · cloud bill · savings · cost reduction · capex · unit economics | echarts infographic vega | [goals/cost-and-budget.md](goals/cost-and-budget.md) |
-| data-exploration | correlation · distribution · regression · outlier detection · missing data · small multiples · density | vega echarts | [goals/data-exploration.md](goals/data-exploration.md) |
+| service-reliability | latency · SLO · error budget · availability | echarts vega infographic | [goals/service-reliability.md](goals/service-reliability.md) |
+| ops-monitoring | incident load · alert volume · anomalies · support volume | echarts vega infographic | [goals/ops-monitoring.md](goals/ops-monitoring.md) |
+| delivery-throughput | throughput · cycle time · capacity · backlog · WIP | echarts vega infographic | [goals/delivery-throughput.md](goals/delivery-throughput.md) |
+| goal-and-status-reporting | OKR · KPI · target vs actual · dashboard · scorecard | echarts vega infographic html-css | [goals/goal-and-status-reporting.md](goals/goal-and-status-reporting.md) |
+| product-metrics | conversion · funnel · retention · cohorts · experiment | echarts infographic | [goals/product-metrics.md](goals/product-metrics.md) |
+| business-reporting | quarterly results · revenue · ARR · margin · forecast | infographic vega echarts | [goals/business-reporting.md](goals/business-reporting.md) |
+| go-to-market | pipeline · channel · market entry · SWOT · campaigns | echarts infographic | [goals/go-to-market.md](goals/go-to-market.md) |
+| cost-and-budget | cost · spend · budget · cloud bill · unit economics | echarts infographic vega | [goals/cost-and-budget.md](goals/cost-and-budget.md) |
+| data-exploration | correlation · distribution · regression · outlier detection · density | vega echarts | [goals/data-exploration.md](goals/data-exploration.md) |
 
 ### B — process & systems
 
 | Goal | Trigger keywords | Engines | Read |
 |---|---|---|---|
-| engineering-operations | standup · sprint ritual · team rhythm · on-call · coverage · shift handover · deploy cadence · checklist | infographic vega echarts | [goals/engineering-operations.md](goals/engineering-operations.md) |
-| incident-management | incident · postmortem · escalation · triage · runbook · change request · launch readiness · review | infographic echarts html-css | [goals/incident-management.md](goals/incident-management.md) |
-| process-and-workflow | approval · workflow · swimlane · SOP · process map · BPMN · gate · procurement | plantuml infographic | [goals/process-and-workflow.md](goals/process-and-workflow.md) |
-| software-design | class · domain model · component · package · layering · use case · object · C4 container · SysML | plantuml | [goals/software-design.md](goals/software-design.md) |
-| software-behaviour | state machine · lifecycle · sequence · interaction · messaging · event flow · EIP · deployment | plantuml | [goals/software-behaviour.md](goals/software-behaviour.md) |
-| dependencies-and-relations | dependency · call graph · impact analysis · coupling · ownership · causality · fishbone | dot vega echarts infographic | [goals/dependencies-and-relations.md](goals/dependencies-and-relations.md) |
-| system-architecture | system architecture · layer stack · zones · pipeline stages · service catalog · request path · connectors | html-css | [goals/system-architecture.md](goals/system-architecture.md) |
+| engineering-operations | standup · on-call · shift handover · deploy cadence | infographic vega echarts | [goals/engineering-operations.md](goals/engineering-operations.md) |
+| incident-management | incident · postmortem · escalation · runbook · change request | infographic echarts html-css | [goals/incident-management.md](goals/incident-management.md) |
+| process-and-workflow | approval · workflow · swimlane · SOP · BPMN | plantuml infographic | [goals/process-and-workflow.md](goals/process-and-workflow.md) |
+| software-design | class · domain model · component · use case · C4 container · SysML | plantuml | [goals/software-design.md](goals/software-design.md) |
+| software-behaviour | state machine · lifecycle · sequence · interaction · EIP | plantuml | [goals/software-behaviour.md](goals/software-behaviour.md) |
+| dependencies-and-relations | dependency · call graph · coupling · causality · fishbone | dot vega echarts infographic | [goals/dependencies-and-relations.md](goals/dependencies-and-relations.md) |
+| system-architecture | system architecture · layer stack · zones · request path · connectors | html-css | [goals/system-architecture.md](goals/system-architecture.md) |
 
 ### C — infrastructure & governance
 
 | Goal | Trigger keywords | Engines | Read |
 |---|---|---|---|
-| cloud-architecture | AWS · Azure · Kubernetes · container · serverless · IoT · edge · VPC · observability | plantuml infographic | [goals/cloud-architecture.md](goals/cloud-architecture.md) |
-| data-platform | ETL · lakehouse · warehouse · CDC · streaming · ingestion · catalog · ML pipeline · ER model | plantuml | [goals/data-platform.md](goals/data-platform.md) |
-| network-topology | network · topology · DMZ · wireless · firewall · switch · packet · route · traffic | plantuml dot echarts | [goals/network-topology.md](goals/network-topology.md) |
-| security-and-compliance | zero trust · IAM · encryption · threat model · trust boundary · controls · evidence · audit · compliance · risk | plantuml infographic html-css | [goals/security-and-compliance.md](goals/security-and-compliance.md) |
-| enterprise-architecture | ArchiMate · capability map · value stream · stakeholder map · business architecture | plantuml infographic | [goals/enterprise-architecture.md](goals/enterprise-architecture.md) |
-| organization-and-roles | org chart · reporting line · workforce · capability coverage · capability maturity · handoffs · responsibilities | infographic vega echarts html-css | [goals/organization-and-roles.md](goals/organization-and-roles.md) |
-| people-and-hiring | hiring · headcount plan · interview loop · onboarding · career ladder · certifications · progression | infographic | [goals/people-and-hiring.md](goals/people-and-hiring.md) |
+| cloud-architecture | AWS · Azure · Kubernetes · serverless · VPC | plantuml infographic | [goals/cloud-architecture.md](goals/cloud-architecture.md) |
+| data-platform | ETL · lakehouse · CDC · streaming · ML pipeline · ER model | plantuml | [goals/data-platform.md](goals/data-platform.md) |
+| network-topology | network · topology · DMZ · firewall · traffic | plantuml dot echarts | [goals/network-topology.md](goals/network-topology.md) |
+| security-and-compliance | zero trust · IAM · encryption · trust boundary · audit | plantuml infographic html-css | [goals/security-and-compliance.md](goals/security-and-compliance.md) |
+| enterprise-architecture | ArchiMate · capability map · value stream · business architecture | plantuml infographic | [goals/enterprise-architecture.md](goals/enterprise-architecture.md) |
+| organization-and-roles | org chart · reporting line · workforce · responsibilities | infographic vega echarts html-css | [goals/organization-and-roles.md](goals/organization-and-roles.md) |
+| people-and-hiring | hiring · headcount plan · interview loop · onboarding | infographic | [goals/people-and-hiring.md](goals/people-and-hiring.md) |
 
 ### D — knowledge & expression
 
 | Goal | Trigger keywords | Engines | Read |
 |---|---|---|---|
-| knowledge-and-outline | mind map · outline · knowledge map · concept map · topics · word cloud | plantuml infographic vega echarts | [goals/knowledge-and-outline.md](goals/knowledge-and-outline.md) |
-| planning-and-roadmap | roadmap · milestone · timeline · Gantt · quarterly plan · release schedule · strategy focus | infographic vega plantuml html-css | [goals/planning-and-roadmap.md](goals/planning-and-roadmap.md) |
-| migration-and-rollout | migration · cutover · rollout waves · phased delivery · programme · work breakdown | plantuml infographic | [goals/migration-and-rollout.md](goals/migration-and-rollout.md) |
-| comparison-and-selection | compare · versus · build or buy · decision record · quadrant · vendor selection · trade-off · priority | infographic html-css | [goals/comparison-and-selection.md](goals/comparison-and-selection.md) |
-| internal-documents | memo · brief · charter · abstract · policy · quote · principles | html-css infographic | [goals/internal-documents.md](goals/internal-documents.md) |
-| catalogues-and-inventories | catalogue · inventory · entitlements · offerings · standard tools · support tiers | infographic | [goals/catalogues-and-inventories.md](goals/catalogues-and-inventories.md) |
-| customer-and-partner-comms | customer story · case study · sales brief · bulletin · announcement · partner brief · education module | html-css | [goals/customer-and-partner-comms.md](goals/customer-and-partner-comms.md) |
-| theme-and-tone | print · photocopy · handout · low vision · large print · colour-blind · slide · projected · long-form | infographic dot echarts plantuml | [goals/theme-and-tone.md](goals/theme-and-tone.md) |
+| knowledge-and-outline | mind map · outline · concept map · word cloud | plantuml infographic vega echarts | [goals/knowledge-and-outline.md](goals/knowledge-and-outline.md) |
+| planning-and-roadmap | roadmap · milestone · timeline · Gantt · release schedule | infographic vega plantuml html-css | [goals/planning-and-roadmap.md](goals/planning-and-roadmap.md) |
+| migration-and-rollout | migration · cutover · rollout waves · work breakdown | plantuml infographic | [goals/migration-and-rollout.md](goals/migration-and-rollout.md) |
+| comparison-and-selection | compare · build or buy · decision record · trade-off · priority | infographic html-css | [goals/comparison-and-selection.md](goals/comparison-and-selection.md) |
+| internal-documents | memo · brief · charter · policy · principles | html-css infographic | [goals/internal-documents.md](goals/internal-documents.md) |
+| catalogues-and-inventories | catalogue · inventory · entitlements · support tiers | infographic | [goals/catalogues-and-inventories.md](goals/catalogues-and-inventories.md) |
+| customer-and-partner-comms | customer story · case study · announcement · partner brief | html-css | [goals/customer-and-partner-comms.md](goals/customer-and-partner-comms.md) |
+| theme-and-tone | print · photocopy · low vision · colour-blind · projected · long-form | infographic dot echarts plantuml | [goals/theme-and-tone.md](goals/theme-and-tone.md) |
 
 ## Engine cheat sheet
 
 | Engine | Reach for it when | Look elsewhere when |
 |---|---|---|
-| `plantuml` | UML/ArchiMate/BPMN semantics or **brand and device icons** (9,514 stencils) | The layout should be computed (`dot`), or it is a chart |
-| `dot` | A relationship graph should lay itself out: dependencies, causality, hierarchy, state machines | Icons or UML semantics matter |
-| `vega` / `vega-lite` | The data needs work first — join, window, fold, regression, density, facets, small multiples | One polished chart with heavy styling (`echarts`) |
-| `echarts` | Report-grade chart or KPI dashboard: axes, series, thresholds, annotations, gauges | The data must be transformed first |
-| `infographic` | A designed-looking board: roadmap, timeline, checklist, comparison, quadrant, knowledge map | Axes, several series or statistical shapes (`echarts`) |
-| HTML/CSS | Cards, memos, overviews, page-level layouts | Another engine already renders that diagram |
+| [Mermaid](engines/mermaid.md) | Ordinary relationships live beside code in a compatible Markdown host | Precise manual placement, statistical analysis or unsupported target syntax |
+| [Excalidraw](engines/excalidraw.md) | Architecture reviews, annotations, spatial layouts and editable handoff | Automatic regeneration must preserve human layout without a merge strategy |
+| [PlantUML](engines/plantuml.md) | Verified UML/ArchiMate/BPMN conventions or brand/device stencils | Plain graph layout (`dot`); the draw-uml implementation is not stock PlantUML |
+| [Graphviz](engines/dot.md) | Computed dependency, causality or hierarchy layout | A freely arranged whiteboard |
+| [Vega/Vega-Lite](engines/vega.md) | Transforms, regression, density, facets and statistical views | One heavily styled chart (`echarts`) |
+| [ECharts](engines/echarts.md) | Axes, series, thresholds, annotations and dashboards | Arbitrary canvas layout |
+| [Infographic](engines/infographic.md) | Template-driven roadmap, checklist, comparison or knowledge board | Statistical axes or free positioning |
+| [HTML/CSS](engines/html-css.md) | Fixed report cards, prose-heavy figures and page layouts | An editable diagram whose human-maintained positions matter |
 
-Details, limits and pitfalls: [`plantuml`](engines/plantuml.md) · [`dot`](engines/dot.md) ·
-[`echarts`](engines/echarts.md) · [`vega`](engines/vega.md) · [`infographic`](engines/infographic.md) ·
-[`html-css`](engines/html-css.md).
+## Report capability boundaries
 
-## Capability boundaries
-
-These are **not possible**; pick the fallback instead of retrying.
+These limits belong to the report pipeline, not to every upstream engine or publishing host.
 
 | Want | Fallback |
 |---|---|
 | 3D / globe / WebGL charts (no `echarts-gl`) | 2D `echarts`; `scatter`/`graph` for shape |
-| Geographic maps (no bundled map data, no GeoJSON offline) | schematic `dot` layout, or an HTML/CSS region diagram |
-| `dataset.transform` in ECharts (throws `RangeError` in 6.1.0) | sort and derive upstream, then `dataset.source` |
-| Functions in an `echarts` option (parsed as JSON) | template strings (`"{c}%"`), per-item label objects |
-| External data or images (`data.url`, remote URLs) | inline `values`, data URLs |
-| PlantUML WBS / Salt / Timing / ditaa / JSON / YAML / EBNF / nwdiag / SDL / math (parse, draw nothing useful) | `@startmindmap`, `dot` tree, HTML/CSS mockups, or a code fence |
-| Interactive charts (tooltip, zoom, brush) | annotate directly: labels, thresholds, callouts |
-| Icons in `dot` / `vega` / `echarts` | `plantuml` stencils |
-| Free-form positioning in `infographic` | HTML/CSS for pixel control |
+| Geographic maps (no bundled data or offline GeoJSON) | Schematic `dot` or HTML/CSS regions |
+| `dataset.transform` in ECharts (reported error in 6.1.0) | Derive upstream, then `dataset.source` |
+| Functions in JSON chart options | Template strings or per-item label objects |
+| Remote data/images on export | Inline values and local or embedded images |
+| PlantUML WBS / Salt / Timing / ditaa / JSON / YAML / EBNF / nwdiag / SDL / math | Verified mind map, `dot`, HTML/CSS or a code fence; see the engine ledger |
+| Interactive charts on a static export | Labels, thresholds and callouts |
+| Icons in `dot` / `vega` / `echarts` | Verified PlantUML stencils |
+| Free positioning in `infographic` | HTML/CSS report layout, or Excalidraw editable asset |
 
-## Converting a document
+## Verification and conversion
 
-The **`documd` CLI** does three things the host application cannot: **convert** a document or a diagram
-source to a file, **extract** its figures as image files to look at (`--assets ./figures`), and
-**verify** — rendering is the only way to prove a block draws; every failure comes back with its engine
-and markdown line, and the run exits 1. Nothing to install:
-`npx @markdown-viewer/documd in.md out.docx` (`.pdf` · `.epub` · `.html`, `diagram.puml out.png`).
-⚠️ Use the scope: bare `documd` on npm is a **different package**. Flags, formats and export
-behaviour: [converting.md](converting.md).
+Report CLI: [converting.md](converting.md).
+`npx @markdown-viewer/documd in.md out.docx` or
+`npx @markdown-viewer/documd file.md --assets /tmp/figs`.
+Bare `documd` on npm is a different package.
 
-## When a block does not render
+For portable diagrams, render with the **actual target host or a pinned Mermaid renderer**; for canvas
+assets, reopen the saved scene, move a node, check bindings and export the preview again. Parsing alone does not establish visual correctness or editability.
 
-1. Fence in the allowed list? Exactly one block per figure?
-2. Is it a listed anti-pattern in that engine's reference (see **Engine cheat sheet**) — or strict
-   syntax (JSON for `echarts`/`vega`, no empty lines in bare HTML)?
-3. Then switch to the alternative engine named in the goal guide; most scenarios have two implementations.
-4. Or verify by rendering: `npx @markdown-viewer/documd file.md --assets /tmp/figs`.
+On failure check the profile, syntax and target version, then use a verified alternative or preview.
+The report CLI's `.mmd` input listing does not guarantee every Mermaid feature or export route.
 
 ## Where everything lives
 
-[`catalog/scenarios.md`](catalog/scenarios.md) indexes every scenario with its domain, engines, tier and
-example path — start there; then `goals/<domain>.md`, `engines/<engine>.md`, `examples/<domain>/<file>.md`.
+[workflows.md](workflows.md) selects the delivery mode. [catalog/scenarios.md](catalog/scenarios.md)
+indexes the report corpus, followed by `goals/<domain>.md`, `engines/<engine>.md` and
+`examples/<domain>/<file>.md`. Keep new report examples registered in the catalogue; do not silently
+reclassify the existing verified examples as portable or editable.
