@@ -8,7 +8,7 @@
  *   1. layout invariants — exactly one SKILL.md, at <pkg>/SKILL.md, and its directory name
  *      equals the frontmatter `name` (installers take the directory as the skill name)
  *   2. self-containment — package files never reference paths outside the package
- *   3. fences — examples only use the recommended fences; no ```html blocks; no blank lines
+ *   3. fences — examples use the fences allowed by their delivery profile; no ```html blocks; no blank lines
  *      inside bare HTML blocks (a blank line ends a CommonMark HTML block)
  *   4. budgets — SKILL.md / goals / engines / examples line and byte budgets
  *   5. catalog consistency — catalog/scenarios.json ↔ filesystem ↔ goals/ ↔ SKILL.md router
@@ -19,6 +19,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { validateDiagramFences } from './lib/diagram-policy.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PKG_DIRS = fs
@@ -26,8 +27,6 @@ const PKG_DIRS = fs
   .filter((d) => d.isDirectory() && !['.git', 'node_modules', 'scripts', 'research'].includes(d.name))
   .map((d) => d.name);
 
-const ALLOWED_FENCES = ['plantuml', 'puml', 'dot', 'vega', 'vega-lite', 'vegalite', 'echarts', 'infographic'];
-const BANNED_FENCES = ['mermaid', 'mmd', 'canvas', 'drawio'];
 // Legal attachments are not routing content: nothing should send an agent to read the terms, so they are
 // exempt from the reachability rule below. They must still live *inside* the package — the installer
 // copies the package directory only, so a repo-root LICENSE never reaches an installed copy.
@@ -63,7 +62,7 @@ const skillText = fs.readFileSync(skillPath, 'utf8');
 const nameMatch = skillText.match(/^name:\s*(\S+)/m);
 if (!nameMatch) fail(`${pkg}/SKILL.md`, 'frontmatter is missing `name`');
 else if (nameMatch[1] !== pkg) fail(`${pkg}/SKILL.md`, `frontmatter name "${nameMatch[1]}" ≠ directory "${pkg}"`);
-for (const kw of ['plantuml', 'echarts', 'vega', 'infographic', 'not recommended', 'Not for']) {
+for (const kw of ['plantuml', 'echarts', 'vega', 'infographic', 'mermaid', 'excalidraw', 'portable-docs', 'editable-canvas', 'not recommended', 'Not for']) {
   if (!skillText.toLowerCase().includes(kw.toLowerCase())) {
     fail(`${pkg}/SKILL.md`, `description/body never mentions "${kw}"`);
   }
@@ -81,9 +80,6 @@ const collect = (dir) => {
 };
 collect(PKG);
 
-const bannedRe = new RegExp('^```(' + BANNED_FENCES.join('|') + ')\\b', 'm');
-const anyFenceRe = /^```([a-z0-9-]+)\b/gm;
-
 let exampleCount = 0;
 for (const f of mdFiles) {
   const rel = path.relative(ROOT, f);
@@ -91,20 +87,10 @@ for (const f of mdFiles) {
   const lines = text.split('\n');
   const isExample = rel.startsWith(`${pkg}/examples/`);
 
-  if (isExample && bannedRe.test(text)) {
-    fail(rel, `uses a non-recommended fence (${BANNED_FENCES.join(' / ')})`);
-  }
-  if (isExample && /^```html\b/m.test(text)) {
-    fail(rel, 'uses a ```html block — cards must be bare HTML');
-  }
   if (isExample) {
     exampleCount++;
-    for (const m of text.matchAll(anyFenceRe)) {
-      const lang = m[1];
-      if (lang === 'text' || lang === 'json' || lang === 'md' || lang === 'markdown') continue;
-      if (!ALLOWED_FENCES.includes(lang)) {
-        fail(rel, `fence "${lang}" is not in the allowed set`);
-      }
+    for (const problem of validateDiagramFences(text).problems) {
+      fail(rel, `line ${problem.line}: ${problem.message}`);
     }
     // bare HTML must not contain a blank line *inside* the block: a blank line ends a
     // CommonMark HTML block, so markup after one silently becomes a second block
@@ -151,13 +137,13 @@ for (const f of mdFiles) {
     // was actually inside the limit.
     const desc = (text.match(/^description:\s*>?([\s\S]*?)^---/m) ?? ['', ''])[1].trim().replace(/\n\s*/g, ' ');
     if (Buffer.byteLength(body) > BUDGET_BYTES.skill) {
-      fail(rel, `body is ${(Buffer.byteLength(body) / 1024).toFixed(1)} KB, over the 12 KB budget`);
+      fail(`${pkg}/SKILL.md`, `body is ${(Buffer.byteLength(body) / 1024).toFixed(1)} KB, over the 12 KB budget`);
     }
     // The Agent Skills spec caps `description` at 1024 characters, and the cap matters: it is the whole
     // trigger surface, so a client that truncates an over-long one silently loses the tail — which is
     // where the newest domains sit. Measured before this budget existed: 1682 characters, 658 over.
     if (desc.length > BUDGET_BYTES.description) {
-      fail(rel, `description is ${desc.length} characters, over the Agent Skills limit of ${BUDGET_BYTES.description}`);
+      fail(`${pkg}/SKILL.md`, `description is ${desc.length} characters, over the Agent Skills limit of ${BUDGET_BYTES.description}`);
     }
   }
 }

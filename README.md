@@ -3,12 +3,35 @@
 Agent skills for the [docu.md](https://docu.md) Markdown pipeline. One skill package, organised by **what
 the reader wants**, with the rendering engines behind it as implementation references.
 
-**242 verified examples · 183 scenarios · 31 goal domains · 6 engines**, every figure coloured from one of
+**Inherited report corpus: 242 verified examples · 183 scenarios · 31 goal domains · 6 engines**, every figure coloured from one of
 **nine themes** defined in `styles/` and generated from a source table, gated by `scripts/check-all.mjs`
 (theme drift · contrast · block render · block coverage · theme usage · structure) plus
 `scripts/verify-examples.mjs` for the full render pass.
 
 Skills follow the [Agent Skills](https://agentskills.io/) format.
+
+## Fork: choose a workflow before an engine
+
+This fork adapts [markdown-viewer/skills](https://github.com/markdown-viewer/skills) with scenario-aware
+routing. The existing report corpus is preserved; the new recipes are **not** counted as verified
+browser-rendered examples.
+
+| Profile | Purpose | Default route |
+|---|---|---|
+| `report` | docu.md reports and batch publishing | The existing specialist engines below |
+| `portable-docs` | README/PR/technical diagrams maintained with code | Mermaid on a verified host, otherwise source + image |
+| `editable-canvas` | Architecture reviews, human placement and annotations | Excalidraw scene + SVG/PNG preview |
+
+Start at [workflows.md](documd-visuals/workflows.md), then read the
+[Mermaid](documd-visuals/engines/mermaid.md) or [Excalidraw](documd-visuals/engines/excalidraw.md) guide.
+Statistical charts stay with ECharts/Vega, dense computed graphs with Graphviz, and specialized
+semantics/stencils with the verified PlantUML implementation. Excalidraw is an asset workflow, **not a
+new fence**. No renderer or editor is installed by this skill; no lossless two-way conversion is promised.
+
+Dependency-free checks: `node scripts/test-diagram-policy.mjs` tests profile/fence policy and the
+canvas recipe's guards with stub dependencies. It does not render figures or validate a host editor.
+The same gate is included in `scripts/check-all.mjs`; existing browser gates still need their original
+external rendering environment.
 
 ---
 
@@ -23,7 +46,7 @@ Skills follow the [Agent Skills](https://agentskills.io/) format.
 ### Quick Install (Recommended)
 
 ```bash
-npx skills add markdown-viewer/skills
+npx skills add learnathing/md-viewer-skills
 ```
 
 This method works with multiple AI coding agents (Claude Code, Codex, Cursor, etc.) and discovers the
@@ -52,6 +75,7 @@ Packages are automatically detected when placed in `.github/skills/` directory.
 skills/
 ├── documd-visuals/        ← the skill package — the only skill here, and the only thing installed
 │   ├── SKILL.md           ← router: iron rules, 31 goals, capability boundaries
+│   ├── workflows.md       ← portable/editable overrides, ownership and acceptance checks
 │   ├── converting.md      ← the documd CLI: install, formats, flags, what survives an export
 │   ├── catalog/           ← every scenario: domain, engines, tier, example files
 │   ├── goals/             ← one guide per goal domain
@@ -73,9 +97,10 @@ exactly one skill, `documd-visuals`.
 
 ### How a request is routed
 
-1. `SKILL.md` matches the reader's intent to one of **31 goal domains**, grouped into four meta-clusters:
+1. `SKILL.md` selects the workflow above, then matches the reader's intent to one of **31 goal domains**, grouped into four meta-clusters:
    data & metrics · process & systems · infrastructure & governance · knowledge & expression.
-2. `goals/<domain>.md` lists that domain's scenarios with the example files that implement them.
+2. For `report`, `goals/<domain>.md` lists scenarios and verified examples; portable/editable overrides
+   live in `workflows.md` and take precedence over report-specific engine choices.
 3. `engines/<engine>.md` covers the chosen engine's limits and anti-patterns.
 
 ### Goal domains
@@ -89,7 +114,7 @@ exactly one skill, `documd-visuals`.
 
 ## ⚙️ Engines
 
-**Recommended — write new content with these**
+**Report profile — preserved specialist engines**
 
 | Fence | Engine | Use it for |
 |---|---|---|
@@ -100,9 +125,10 @@ exactly one skill, `documd-visuals`.
 | `infographic` | @antv/infographic 0.2.20 | template-driven infographics: roadmaps, sequences, comparisons |
 | (bare HTML) | built in | system architecture diagrams, cards, memos and page-level layouts |
 
-**Not recommended** — `mermaid` · `canvas` · `drawio` (the last is the internal format of the PlantUML
-pipeline: machine output, not a writing target). The package does not document them; new content uses the
-engines above.
+**Portable documents:** canonical `mermaid` fences are supported by the skill when the target renders
+them. **Editable diagrams:** keep `.excalidraw` source assets and display exported previews. `canvas`,
+`drawio`, `mmd` and `excalidraw` authoring fences remain disallowed; `.mmd` is a source-file extension,
+not the canonical Markdown fence. The internal drawio stage of PlantUML is unchanged.
 
 ## 🛠️ The `documd` CLI
 
@@ -159,7 +185,8 @@ to get the new package.
 ### Gates
 
 ```bash
-node scripts/check-all.mjs                                           # every theme gate at once
+node scripts/check-all.mjs                                           # policy + existing theme gates
+node scripts/test-diagram-policy.mjs                                 # dependency-free policy/recipe contracts
 node scripts/validate-skills.mjs                                     # layout, budgets, catalog, fences, language, theme reachability
 node scripts/build-themes.mjs --check                                 # theme files match the source tables
 node scripts/build-catalog.mjs --check                               # catalog ↔ filesystem consistency
@@ -169,7 +196,7 @@ node scripts/build-coverage.mjs --check                               # coverage
 node scripts/verify-examples.mjs --dir documd-visuals/examples --all  # render every example
 ```
 
-`check-all.mjs` runs the theme gates — drift (`build-themes.mjs --check`), contrast
+`check-all.mjs` runs the profile/recipe tests and the theme gates — drift (`build-themes.mjs --check`), contrast
 (`check-palette-contrast.mjs`, per theme), block render (`verify-blocks.mjs`), block coverage
 (`apply-block.mjs --all --check`), off-theme literals (`check-palette-usage.mjs --strict`) — and
 `validate-skills.mjs`, which also enforces that `styles/palette.md` and every `styles/themes/*.md`
@@ -200,6 +227,12 @@ the full render pass. All must exit 0.
 3. `node scripts/build-catalog.mjs --apply && node scripts/build-goals.mjs`.
 4. `node scripts/verify-examples.mjs --dir documd-visuals/examples --all`.
 
+Portable example metadata and the distinction between authoring recipes and registered rendered
+examples are documented in [workflows.md](documd-visuals/workflows.md). This change adds no new entries
+to the report catalogue and does not extend its generators or theme/render matrix to new engines.
+A future registered Mermaid example still needs those integrations; passing fence policy alone is not
+a rendered-example verification.
+
 ### Code fence reference
 
 | Engine | Fence | Output |
@@ -210,7 +243,9 @@ the full render pass. All must exit 0.
 | ECharts | ` ```echarts ` | PNG |
 | Infographic | ` ```infographic ` | PNG |
 | HTML/CSS | (no fence, raw HTML) | HTML |
-| ~~Mermaid~~ · ~~Canvas~~ · ~~drawio~~ | not recommended | — |
+| Mermaid (`portable-docs`) | ` ```mermaid ` | Host render or external SVG/PNG preview |
+| Excalidraw (`editable-canvas`) | source asset, not a fence | Editable scene + exported SVG/PNG |
+| Canvas · drawio · mmd · excalidraw fences | not authoring targets | — |
 
 ---
 
